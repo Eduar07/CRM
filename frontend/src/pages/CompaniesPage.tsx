@@ -1,51 +1,45 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { listCompanies } from "../services/company.service";
-import type { Company } from "../types/company";
+import { useMemo, useState } from "react";
+import { CompanyTable } from "../components/company/CompanyTable";
+import { EmptyState, Loader } from "../components/common";
+import { useCompanies } from "../hooks/useCompanies";
 
 export function CompaniesPage() {
-  const [items, setItems] = useState<Company[]>([]);
+  const { companies, loading, error } = useCompanies();
+  const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    listCompanies().then(setItems).catch(console.error);
-  }, []);
+  const filteredCompanies = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
+      return companies;
+    }
+
+    return companies.filter((company) => {
+      return (
+        company.name.toLowerCase().includes(normalized) ||
+        company.country.toLowerCase().includes(normalized) ||
+        (company.department ?? "").toLowerCase().includes(normalized)
+      );
+    });
+  }, [companies, query]);
 
   return (
-    <div className="rounded-3xl bg-white p-5 shadow-sm border">
+    <div className="rounded-3xl border bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Empresas</h1>
+        <h1 className="text-xl font-bold text-slate-900">Empresas</h1>
         <input
           className="w-full max-w-xs rounded-2xl border px-4 py-2 text-sm"
           placeholder="Buscar..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
         />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b text-slate-500">
-            <tr>
-              <th className="py-3 pr-4">Nombre</th>
-              <th className="py-3 pr-4">País</th>
-              <th className="py-3 pr-4">Departamento</th>
-              <th className="py-3 pr-4">LinkedIn</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((company) => (
-              <tr key={company.id} className="border-b last:border-b-0">
-                <td className="py-3 pr-4 font-medium">
-                  <Link className="text-blue-600 hover:underline" to={`/companies/${company.id}`}>
-                    {company.name}
-                  </Link>
-                </td>
-                <td className="py-3 pr-4">{company.country}</td>
-                <td className="py-3 pr-4">{company.department ?? "-"}</td>
-                <td className="py-3 pr-4 truncate max-w-[220px]">{company.linkedinUrl}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? <Loader text="Cargando empresas..." /> : null}
+      {error ? <EmptyState title="No se pudieron cargar las empresas" description={error} /> : null}
+      {!loading && !error && filteredCompanies.length === 0 ? (
+        <EmptyState title="No hay empresas" description="No se encontraron resultados para el filtro actual." />
+      ) : null}
+      {!loading && !error && filteredCompanies.length > 0 ? <CompanyTable items={filteredCompanies} /> : null}
     </div>
   );
 }
