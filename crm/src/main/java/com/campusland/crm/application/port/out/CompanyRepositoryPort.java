@@ -12,5 +12,8 @@ public interface CompanyRepositoryPort {
     Optional<Company> findById(CompanyId id);
     Optional<Company> findByLinkedInUrl(LinkedInUrl linkedinUrl);
     List<Company> findAll();
+    List<Company> findByDepartment(String department);
+    List<Company> findByAssignedTo(String username);
     boolean existsByLinkedInUrl(LinkedInUrl linkedinUrl);
+    void deleteById(CompanyId id);
 }

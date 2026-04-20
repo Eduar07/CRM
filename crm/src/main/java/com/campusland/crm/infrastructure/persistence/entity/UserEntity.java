@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -12,10 +14,15 @@ import java.util.UUID;
 public class UserEntity {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(columnDefinition = "CHAR(36)")
     private UUID id;
 
     @Column(nullable = false, unique = true)
     private String username;
+
+    @Column(unique = true)
+    private String email;
 
     @Column(nullable = false)
     private String role;
@@ -37,6 +44,7 @@ public class UserEntity {
 
     public UserEntity(UUID id,
                       String username,
+                      String email,
                       String role,
                       String passwordHash,
                       boolean active,
@@ -44,6 +52,7 @@ public class UserEntity {
                       String msRefreshToken) {
         this.id = id;
         this.username = username;
+        this.email = email;
         this.role = role;
         this.passwordHash = passwordHash;
         this.active = active;
@@ -57,6 +66,10 @@ public class UserEntity {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getRole() {

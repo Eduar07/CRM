@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -13,12 +15,16 @@ import java.util.UUID;
 public class LeadEntity {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(columnDefinition = "CHAR(36)")
     private UUID id;
 
-    @Column(name = "company_id", nullable = false)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "company_id", nullable = false, columnDefinition = "CHAR(36)")
     private UUID companyId;
 
-    @Column(name = "contact_id", nullable = false)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "contact_id", nullable = false, columnDefinition = "CHAR(36)")
     private UUID contactId;
 
     @Column(nullable = false)

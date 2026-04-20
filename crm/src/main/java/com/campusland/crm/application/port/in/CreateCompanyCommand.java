@@ -4,6 +4,9 @@ public record CreateCompanyCommand(
         String name,
         String linkedinUrl,
         String country,
-        String department
-) {
-}
+        String department,
+        String industry,
+        String size,
+        String website,
+        String assignedTo
+) {}

@@ -11,5 +11,8 @@ export const API_PATHS = {
   contacts: "/contacts",
   leads: "/leads",
   meetings: "/meetings",
-  emails: "/emails"
+  emails: "/emails",
+  interactions: "/interactions",
+  tasks: "/tasks",
+  dashboardKpis: "/dashboard/kpis",
 } as const;

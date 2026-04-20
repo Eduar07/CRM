@@ -19,7 +19,8 @@ public final class ContactMapper {
                 domain.companyId().value(),
                 domain.name().value(),
                 domain.email().value(),
-                domain.role().name()
+                domain.role().name(),
+                null  // phone: campo disponible en BD pero aún no modelado en el dominio
         );
     }
 

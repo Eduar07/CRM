@@ -32,10 +32,13 @@ public class CreateCompanyService implements CreateCompanyUseCase {
                 new CompanyName(command.name()),
                 linkedinUrl,
                 command.country(),
-                command.department()
+                command.department(),
+                command.industry(),
+                command.size(),
+                command.website(),
+                command.assignedTo()
         );
 
         return companyRepositoryPort.save(company);
     }
-
 }

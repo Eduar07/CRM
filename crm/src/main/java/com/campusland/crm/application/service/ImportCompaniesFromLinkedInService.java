@@ -30,23 +30,39 @@ public class ImportCompaniesFromLinkedInService implements ImportCompaniesFromLi
     public List<Company> importByCountry(ImportCompaniesFromLinkedInCommand command) {
         List<Company> savedCompanies = new ArrayList<>();
 
-        for (var externalCompany : linkedInLeadCapturePort.fetchCompaniesByCountry(command.country())) {
-            LinkedInUrl linkedinUrl = new LinkedInUrl(externalCompany.linkedinUrl());
+        for (var ext : linkedInLeadCapturePort.fetchCompaniesByCountry(command.country())) {
+            LinkedInUrl linkedinUrl = new LinkedInUrl(ext.linkedinUrl());
 
             if (companyRepositoryPort.existsByLinkedInUrl(linkedinUrl)) {
                 continue;
             }
 
+            // Asignar vendedor según departamento
+            String assignedTo = assignByDepartment(ext.department());
+
             Company company = Company.create(
-                    new CompanyName(externalCompany.name()),
+                    new CompanyName(ext.name()),
                     linkedinUrl,
-                    externalCompany.country(),
-                    externalCompany.department()
+                    ext.country(),
+                    ext.department(),
+                    null,   // industry — no disponible desde LinkedIn scraper
+                    null,   // size
+                    null,   // website
+                    assignedTo
             );
 
             savedCompanies.add(companyRepositoryPort.save(company));
         }
 
         return savedCompanies;
+    }
+
+    private String assignByDepartment(String department) {
+        if (department == null) return "superadmin";
+        return switch (department.toLowerCase()) {
+            case "santander" -> "marcela";
+            case "norte de santander" -> "karolain";
+            default -> "superadmin";
+        };
     }
 }

@@ -4,7 +4,6 @@ import com.campusland.crm.application.port.out.CompanyRepositoryPort;
 import com.campusland.crm.domain.company.Company;
 import com.campusland.crm.domain.company.CompanyId;
 import com.campusland.crm.domain.company.LinkedInUrl;
-import com.campusland.crm.infrastructure.persistence.entity.CompanyEntity;
 import com.campusland.crm.infrastructure.persistence.mapper.CompanyMapper;
 import com.campusland.crm.infrastructure.persistence.repository.CompanyJpaRepository;
 import org.springframework.stereotype.Repository;
@@ -23,8 +22,7 @@ public class CompanyRepositoryAdapter implements CompanyRepositoryPort {
 
     @Override
     public Company save(Company company) {
-        CompanyEntity saved = repository.save(CompanyMapper.toEntity(company));
-        return CompanyMapper.toDomain(saved);
+        return CompanyMapper.toDomain(repository.save(CompanyMapper.toEntity(company)));
     }
 
     @Override
@@ -43,7 +41,24 @@ public class CompanyRepositoryAdapter implements CompanyRepositoryPort {
     }
 
     @Override
+    public List<Company> findByDepartment(String department) {
+        return repository.findByDepartmentIgnoreCase(department).stream()
+                .map(CompanyMapper::toDomain).toList();
+    }
+
+    @Override
+    public List<Company> findByAssignedTo(String username) {
+        return repository.findByAssignedToIgnoreCase(username).stream()
+                .map(CompanyMapper::toDomain).toList();
+    }
+
+    @Override
     public boolean existsByLinkedInUrl(LinkedInUrl linkedinUrl) {
         return repository.existsByLinkedinUrl(linkedinUrl.value());
+    }
+
+    @Override
+    public void deleteById(CompanyId id) {
+        repository.deleteById(id.value());
     }
 }
