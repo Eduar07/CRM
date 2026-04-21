@@ -10,14 +10,7 @@ import { MeetingsPage } from "./pages/MeetingsPage";
 import { ContactsPage } from "./pages/ContactsPage";
 import { EmailsPage } from "./pages/EmailsPage";
 import { TasksPage } from "./pages/TasksPage";
-
-function ComingSoon({ name }: { name: string }) {
-  return (
-    <div className="flex h-64 items-center justify-center text-gray-400 text-sm">
-      {name} — próximamente
-    </div>
-  );
-}
+import { ReportsPage } from "./pages/ReportsPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -29,15 +22,15 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true,              element: <DashboardPage /> },
-      { path: "companies",        element: <CompaniesPage /> },
-      { path: "companies/:id",    element: <CompanyDetailPage /> },
-      { path: "pipeline",         element: <PipelinePage /> },
-      { path: "contacts",         element: <ContactsPage /> },
-      { path: "meetings",         element: <MeetingsPage /> },
-      { path: "emails",           element: <EmailsPage /> },
-      { path: "tasks",            element: <TasksPage /> },
-      { path: "reports",          element: <ComingSoon name="Reportes" /> },
+      { index: true,           element: <DashboardPage /> },
+      { path: "companies",     element: <CompaniesPage /> },
+      { path: "companies/:id", element: <CompanyDetailPage /> },
+      { path: "pipeline",      element: <PipelinePage /> },
+      { path: "contacts",      element: <ContactsPage /> },
+      { path: "meetings",      element: <MeetingsPage /> },
+      { path: "emails",        element: <EmailsPage /> },
+      { path: "tasks",         element: <TasksPage /> },
+      { path: "reports",       element: <ReportsPage /> },
     ]
   }
 ]);

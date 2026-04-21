@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { useCompanies } from "../hooks/useCompanies";
@@ -18,7 +18,7 @@ type StatCardProps = {
 };
 function StatCard({ label, value, subtitle, trend, highlight }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <p className="text-sm text-gray-500">{label}</p>
       {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
       <p className={`mt-1 text-3xl font-bold ${highlight ? "text-red-500" : "text-gray-900"}`}>{value}</p>
@@ -43,7 +43,7 @@ function ActivityChart() {
       <div className="flex h-28 items-end gap-2">
         {ACTIVITY_VALUES.map((val, i) => (
           <div key={DAYS[i]} className="flex flex-1 flex-col items-center gap-1">
-            <div className={`w-full rounded-md ${i === 3 ? "bg-gray-900" : "bg-gray-200"}`}
+            <div className={`w-full rounded-md ${i === 3 ? "bg-indigo-600" : "bg-gray-200"}`}
               style={{ height: `${(val / MAX_VAL) * 100}%` }} />
             <span className="text-[10px] text-gray-400">{DAYS[i]}</span>
           </div>
@@ -107,13 +107,33 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cfg.cls}`}>{cfg.label}</span>;
 }
 
-// ─── Recent Companies Table ───────────────────────────────────────────────────
-function RecentCompaniesTable({ companies }: { companies: Company[] }) {
-  const rows = companies.slice(0, 5);
+// ─── Recent Companies Table (con filtrado reactivo por search) ────────────────
+function RecentCompaniesTable({ companies, searchQuery }: { companies: Company[]; searchQuery: string }) {
+  // BUG #2 FIX: filtrado reactivo con debounce vía useEffect desde el padre
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.industry ?? "").toLowerCase().includes(q) ||
+      (c.department ?? "").toLowerCase().includes(q) ||
+      (c.assignedTo ?? "").toLowerCase().includes(q)
+    );
+  }, [companies, searchQuery]);
+
+  const rows = filtered.slice(0, 5);
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
-        <h3 className="text-sm font-semibold text-gray-900">Empresas recientes</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Empresas recientes</h3>
+          {searchQuery && (
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              {filtered.length} resultado{filtered.length !== 1 ? "s" : ""} para "{searchQuery}"
+            </p>
+          )}
+        </div>
         <Link to="/companies" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Ver todas
         </Link>
@@ -129,11 +149,17 @@ function RecentCompaniesTable({ companies }: { companies: Company[] }) {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-400">No hay empresas registradas aún</td></tr>
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center">
+                  <p className="text-sm text-gray-400">
+                    {searchQuery ? `Sin resultados para "${searchQuery}"` : "No hay empresas registradas aún"}
+                  </p>
+                </td>
+              </tr>
             ) : rows.map((row) => (
               <tr key={row.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-5 py-3 text-sm font-semibold text-gray-900">
-                  <Link to={`/companies/${row.id}`} className="hover:text-blue-600">{row.name}</Link>
+                  <Link to={`/companies/${row.id}`} className="hover:text-indigo-600">{row.name}</Link>
                 </td>
                 <td className="px-5 py-3 text-sm text-gray-500">{row.industry ?? "—"}</td>
                 <td className="px-5 py-3 text-sm text-gray-500">—</td>
@@ -155,21 +181,42 @@ export function DashboardPage() {
   const { meetings } = useMeetings(userId ?? undefined);
   const { companies } = useCompanies();
   const { kpis } = useDashboardKpis();
-  const [search, setSearch] = useState("");
+
+  // BUG #2 FIX — Buscador con debounce de 400ms
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   return (
     <div className="min-h-full bg-gray-50">
       <div className="border-b border-gray-200 bg-white">
         <div className="flex items-center gap-4 px-6 py-4">
           <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-          <div className="flex max-w-sm flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+          <div className="flex max-w-sm flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-indigo-400 focus-within:bg-white transition-colors">
             <Search size={15} className="text-gray-400" />
-            <input type="text" placeholder="Buscar empresa, contacto..." value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none" />
+            <input
+              type="text"
+              placeholder="Buscar empresa, contacto..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+            />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput("")}
+                className="text-xs text-gray-400 hover:text-gray-600 px-1"
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
           </div>
           <div className="ml-auto">
-            <Link to="/companies" className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 transition-colors">
+            <Link to="/companies" className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 transition-all">
               <Plus size={15} /> Nueva empresa
             </Link>
           </div>
@@ -194,7 +241,7 @@ export function DashboardPage() {
           <UpcomingMeetings meetings={meetings} />
         </div>
 
-        <RecentCompaniesTable companies={companies} />
+        <RecentCompaniesTable companies={companies} searchQuery={debouncedSearch} />
       </div>
     </div>
   );

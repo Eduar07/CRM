@@ -15,6 +15,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { logout } from "../../services/auth.service";
 import { STORAGE_KEYS } from "../../utils/constants";
+import { useTasksBadge } from "../../hooks/useTasksBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type NavItem = {
@@ -32,31 +33,29 @@ const PRINCIPAL_NAV: NavItem[] = [
   { to: "/contacts",  label: "Contactos", icon: Users },
 ];
 
-const GESTION_NAV: NavItem[] = [
-  { to: "/tasks",    label: "Tareas",      icon: CheckSquare, badge: 4 },
-  { to: "/meetings", label: "Calendario",  icon: Calendar },
-  { to: "/emails",   label: "Seguimiento", icon: BookOpen },
-  { to: "/reports",  label: "Reportes",    icon: TrendingUp },
-];
-
 // ─── Sidebar link ─────────────────────────────────────────────────────────────
+// BUG #1 FIX: Hover y activo ahora son visualmente distintos.
+// Activo = borde izquierdo indigo sólido + fondo indigo tenue
+// Hover  = fondo gris claro + borde izquierdo gris (nunca tapa el activo)
 function SidebarLink({ to, label, icon: Icon, badge }: NavItem) {
   const getLinkClass = ({ isActive }: NavLinkRenderProps) =>
-    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+    [
+      "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+      "border-l-[3px]",
       isActive
-        ? "bg-gray-900 text-white"
-        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-    }`;
+        ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold"
+        : "border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-200",
+    ].join(" ");
 
   return (
     <NavLink to={to} end={to === "/"} className={getLinkClass}>
       {({ isActive }: NavLinkRenderProps) => (
         <>
-          <Icon size={17} className={isActive ? "text-white" : "text-gray-500"} />
+          <Icon size={17} className={isActive ? "text-indigo-600" : "text-gray-500 group-hover:text-gray-700"} />
           <span className="flex-1">{label}</span>
-          {badge !== undefined && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
-              {badge}
+          {badge !== undefined && badge > 0 && (
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
+              {badge > 99 ? "99+" : badge}
             </span>
           )}
         </>
@@ -85,6 +84,16 @@ function NavSection({ title, items }: { title: string; items: NavItem[] }) {
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+
+  // BUG #7 FIX: badge muestra el número real de tareas pendientes; si es 0, se oculta
+  const pendingTasksCount = useTasksBadge();
+
+  const gestionNav: NavItem[] = [
+    { to: "/tasks",    label: "Tareas",      icon: CheckSquare, badge: pendingTasksCount },
+    { to: "/meetings", label: "Calendario",  icon: Calendar },
+    { to: "/emails",   label: "Seguimiento", icon: BookOpen },
+    { to: "/reports",  label: "Reportes",    icon: TrendingUp },
+  ];
 
   const username = localStorage.getItem(STORAGE_KEYS.username) ?? "marcela_admin";
   const initials = username.split("_")[0].slice(0, 2).toUpperCase();
@@ -115,7 +124,7 @@ export function DashboardLayout() {
         {/* Logo */}
         <div className="px-5 pb-5 pt-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
               C
             </div>
             <div>
@@ -128,13 +137,13 @@ export function DashboardLayout() {
         {/* Nav */}
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
           <NavSection title="Principal" items={PRINCIPAL_NAV} />
-          <NavSection title="Gestión"   items={GESTION_NAV} />
+          <NavSection title="Gestión"   items={gestionNav} />
         </nav>
 
         {/* User footer */}
         <div className="space-y-2 border-t border-gray-100 p-4">
           <div className="flex items-start gap-3 rounded-xl bg-gray-50 px-3 py-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
               {initials}
             </div>
             <div className="min-w-0">
@@ -156,7 +165,6 @@ export function DashboardLayout() {
 
       {/* ── Main ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile topbar */}
         <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
           <button
             onClick={() => setMobileOpen(true)}
