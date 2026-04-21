@@ -1,6 +1,7 @@
 package com.campusland.crm.presentation.exception;
 
 import com.campusland.crm.application.exception.ApplicationException;
+import com.campusland.crm.application.exception.ConflictException;
 import com.campusland.crm.domain.shared.DomainException;
 import com.campusland.crm.presentation.dto.common.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,9 +22,17 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    // FIX: ConflictException (ventana email 7 días, reunión solapada) → 409 específico
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleConflictException(ConflictException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    // FIX: ApplicationException genérica → 422 Unprocessable Entity (regla de negocio violada),
+    // no 409 Conflict. Eso deja 409 exclusivamente para conflictos reales.
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ApiErrorResponse> handleApplicationException(ApplicationException ex, HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

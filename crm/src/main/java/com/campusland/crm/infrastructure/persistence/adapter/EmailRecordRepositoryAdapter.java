@@ -7,6 +7,8 @@ import com.campusland.crm.infrastructure.persistence.mapper.EmailRecordMapper;
 import com.campusland.crm.infrastructure.persistence.repository.EmailRecordJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +42,13 @@ public class EmailRecordRepositoryAdapter implements EmailRecordRepositoryPort {
 
     @Override
     public boolean alreadySentTo(String contactId) {
-        return repository.existsByContactId(UUID.fromString(contactId));
+        // Mantengo la firma por compatibilidad, pero ahora delega a la ventana de 7 días
+        return sentToWithinDays(contactId, 7);
+    }
+
+    @Override
+    public boolean sentToWithinDays(String contactId, int days) {
+        Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
+        return repository.existsByContactIdAndSentAtAfter(UUID.fromString(contactId), since);
     }
 }

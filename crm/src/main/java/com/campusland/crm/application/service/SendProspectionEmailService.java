@@ -1,6 +1,7 @@
 package com.campusland.crm.application.service;
 
 import com.campusland.crm.application.exception.ApplicationException;
+import com.campusland.crm.application.exception.ConflictException;
 import com.campusland.crm.application.port.in.SendProspectionEmailCommand;
 import com.campusland.crm.application.port.in.SendProspectionEmailUseCase;
 import com.campusland.crm.application.port.out.*;
@@ -15,6 +16,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class SendProspectionEmailService implements SendProspectionEmailUseCase {
+
+    private static final int EMAIL_COOLDOWN_DAYS = 7;
 
     private final CompanyRepositoryPort companyRepositoryPort;
     private final ContactRepositoryPort contactRepositoryPort;
@@ -56,8 +59,13 @@ public class SendProspectionEmailService implements SendProspectionEmailUseCase 
             throw new ApplicationException("No se puede enviar email automático a un correo genérico");
         }
 
-        if (emailRecordRepositoryPort.alreadySentTo(contact.id().value().toString())) {
-            throw new ApplicationException("Ya se envió un email previamente a este contacto");
+        // FIX BUG EMAIL 409: Ventana de 7 días en lugar de bloqueo permanente.
+        // Esta es una regla de negocio (anti-spam), por eso lanzamos ConflictException → HTTP 409.
+        if (emailRecordRepositoryPort.sentToWithinDays(contact.id().value().toString(), EMAIL_COOLDOWN_DAYS)) {
+            throw new ConflictException(
+                    "Ya se envió un email a este contacto en los últimos " + EMAIL_COOLDOWN_DAYS + " días. " +
+                    "Espera unos días antes de volver a contactarlo para evitar spam."
+            );
         }
 
         String subject = prospectionEmailComposer.subject(contact.role(), company.name().value());

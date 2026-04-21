@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, ArrowUp, ArrowDown, Calendar as CalIcon, BarChart2 } from "lucide-react";
 import { useCompanies } from "../hooks/useCompanies";
 import { useMeetings } from "../hooks/useMeetings";
 import { useAuth } from "../hooks/useAuth";
 import { useDashboardKpis } from "../hooks/useDashboardKpis";
+import { getWeeklyActivity, type WeeklyActivity } from "../services/dashboard.service";
 import type { Meeting } from "../types/meeting";
 import type { Company } from "../types/company";
 
@@ -32,34 +33,61 @@ function StatCard({ label, value, subtitle, trend, highlight }: StatCardProps) {
   );
 }
 
-// ─── Bar Chart ────────────────────────────────────────────────────────────────
-const DAYS = ["L", "M", "Mi", "J", "V", "S", "D"];
-const ACTIVITY_VALUES = [55, 70, 60, 90, 65, 40, 25];
-const MAX_VAL = Math.max(...ACTIVITY_VALUES);
-function ActivityChart() {
+// ─── Activity Chart: barras agrupadas por día con datos reales ───────────────
+const DAYS_LABELS = ["L", "M", "Mi", "J", "V", "S", "D"];
+
+function buildDefaultWeek(): WeeklyActivity[] {
+  return DAYS_LABELS.map((d) => ({ day: d, emails: 0, calls: 0, meetings: 0 }));
+}
+
+function ActivityChart({ data }: { data: WeeklyActivity[] }) {
+  const week = data.length === 7 ? data : buildDefaultWeek();
+  const totalEvents = week.reduce((acc, d) => acc + d.emails + d.calls + d.meetings, 0);
+  const maxVal = Math.max(1, ...week.map(d => d.emails + d.calls + d.meetings));
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">Actividad semanal</h3>
-      <div className="flex h-28 items-end gap-2">
-        {ACTIVITY_VALUES.map((val, i) => (
-          <div key={DAYS[i]} className="flex flex-1 flex-col items-center gap-1">
-            <div className={`w-full rounded-md ${i === 3 ? "bg-indigo-600" : "bg-gray-200"}`}
-              style={{ height: `${(val / MAX_VAL) * 100}%` }} />
-            <span className="text-[10px] text-gray-400">{DAYS[i]}</span>
-          </div>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">Actividad semanal</h3>
+        <div className="flex gap-3 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" />Emails</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Llamadas</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />Reuniones</span>
+        </div>
       </div>
+
+      {totalEvents === 0 ? (
+        <div className="flex h-32 flex-col items-center justify-center text-center">
+          <BarChart2 size={26} className="text-gray-300 mb-2" />
+          <p className="text-xs text-gray-500 font-medium">Sin actividad esta semana</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">Las reuniones y emails aparecerán aquí</p>
+        </div>
+      ) : (
+        <div className="flex h-32 items-end gap-3">
+          {week.map((d, i) => {
+            const total = d.emails + d.calls + d.meetings;
+            const h = (total / maxVal) * 100;
+            const heightPct = Math.max(h, total > 0 ? 6 : 0);
+            return (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <div className="w-full flex flex-col justify-end" style={{ height: `${heightPct}%` }}>
+                  {d.meetings > 0 && <div className="w-full bg-amber-400" style={{ flex: d.meetings }} />}
+                  {d.calls > 0 && <div className="w-full bg-emerald-500" style={{ flex: d.calls }} />}
+                  {d.emails > 0 && <div className="w-full rounded-t-md bg-indigo-500" style={{ flex: d.emails }} />}
+                </div>
+                <span className="text-[10px] text-gray-400">{DAYS_LABELS[i]}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Upcoming Meetings ────────────────────────────────────────────────────────
+// ─── Upcoming Meetings con empty state ────────────────────────────────────────
 const DOT_COLORS = ["bg-blue-500", "bg-amber-400", "bg-gray-400"];
-const STATIC_MEETINGS = [
-  { id: "s1", title: "Syscom SAS — Demo IA", contact: "Carlos Ruiz (CTO)", time: "Hoy 10am", detail: "Google Meet" },
-  { id: "s2", title: "Tech Valley — Propuesta Staff", contact: "Ana Gómez (CEO)", time: "Mañana 3pm", detail: "Presencial" },
-  { id: "s3", title: "DataBog Tech — Seguimiento", contact: "Javier Mora (Talent Manager)", time: "Jue 11am", detail: "" },
-];
+
 function formatMeetingTime(startTime: string): string {
   const d = new Date(startTime);
   const now = new Date();
@@ -71,26 +99,42 @@ function formatMeetingTime(startTime: string): string {
   if (meetDate.getTime() === tomorrow.getTime()) return `Mañana ${timeStr}`;
   return `${["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()]} ${timeStr}`;
 }
+
 function UpcomingMeetings({ meetings }: { meetings: Meeting[] }) {
-  const items = meetings.length > 0
-    ? meetings.slice(0, 3).map((m) => ({ id: m.id, title: m.title, contact: m.description ?? "", time: formatMeetingTime(m.startTime), detail: m.meetingLink ?? "" }))
-    : STATIC_MEETINGS;
+  const items = meetings.slice(0, 3);
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <h3 className="mb-4 text-sm font-semibold text-gray-900">Próximas reuniones</h3>
-      <div className="space-y-4">
-        {items.map((item, i) => (
-          <div key={item.id} className="flex items-start gap-3">
-            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[i % DOT_COLORS.length]}`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-gray-900">{item.title}</p>
-              <p className="text-[11px] text-gray-500">{item.contact}</p>
-              {item.detail && <p className="text-[11px] text-gray-400">{item.detail}</p>}
+
+      {/* FIX: empty state grande con CTA */}
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center">
+          <span className="text-2xl mb-2">🎯</span>
+          <p className="text-sm font-semibold text-gray-900">No tienes reuniones pendientes</p>
+          <p className="text-xs text-gray-500 mt-1">Agenda una para empezar a cerrar negocios</p>
+          <Link to="/meetings"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all">
+            <CalIcon size={13} /> ¡Agenda una!
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {items.map((m, i) => (
+            <div key={m.id} className="flex items-start gap-3">
+              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[i % DOT_COLORS.length]}`} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-gray-900">{m.title}</p>
+                {m.description && <p className="text-[11px] text-gray-500">{m.description}</p>}
+                {m.meetingLink && <p className="text-[11px] text-gray-400 truncate">{m.meetingLink}</p>}
+              </div>
+              <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">
+                {formatMeetingTime(m.startTime)}
+              </span>
             </div>
-            <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">{item.time}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -107,9 +151,8 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cfg.cls}`}>{cfg.label}</span>;
 }
 
-// ─── Recent Companies Table (con filtrado reactivo por search) ────────────────
+// ─── Recent Companies Table ───────────────────────────────────────────────────
 function RecentCompaniesTable({ companies, searchQuery }: { companies: Company[]; searchQuery: string }) {
-  // BUG #2 FIX: filtrado reactivo con debounce vía useEffect desde el padre
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return companies;
@@ -182,14 +225,18 @@ export function DashboardPage() {
   const { companies } = useCompanies();
   const { kpis } = useDashboardKpis();
 
-  // BUG #2 FIX — Buscador con debounce de 400ms
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [weekly, setWeekly] = useState<WeeklyActivity[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput), 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    void getWeeklyActivity().then(setWeekly);
+  }, []);
 
   return (
     <div className="min-h-full bg-gray-50">
@@ -216,8 +263,12 @@ export function DashboardPage() {
             )}
           </div>
           <div className="ml-auto">
-            <Link to="/companies" className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 transition-all">
-              <Plus size={15} /> Nueva empresa
+            {/* FIX: bg-indigo-600 con !text-white para garantizar que nunca sea gris */}
+            <Link
+              to="/companies"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold !text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 transition-all"
+            >
+              <Plus size={15} className="text-white" /> Nueva empresa
             </Link>
           </div>
         </div>
@@ -237,7 +288,7 @@ export function DashboardPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <ActivityChart />
+          <ActivityChart data={weekly} />
           <UpcomingMeetings meetings={meetings} />
         </div>
 
