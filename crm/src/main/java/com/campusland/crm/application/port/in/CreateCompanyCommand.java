@@ -8,5 +8,12 @@ public record CreateCompanyCommand(
         String industry,
         String size,
         String website,
-        String assignedTo
+        String assignedTo,
+        String nit,
+        String phones,
+        String emails,
+        String address,
+        String legalRep,
+        String companyState,
+        String description
 ) {}

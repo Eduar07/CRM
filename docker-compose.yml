@@ -48,6 +48,22 @@ services:
     ports:
       - "8080:8080"
 
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: campusland-scraper
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DOCKER: "true"
+      PORT: 4000
+      ALLOWED_ORIGINS: http://localhost:3000,http://campusland-frontend
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "4000:4000"
+    shm_size: "1gb"
+
   frontend:
     build:
       context: ./frontend
@@ -56,6 +72,7 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+      - scraper
     ports:
       - "3000:80"
 

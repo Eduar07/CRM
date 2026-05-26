@@ -19,12 +19,12 @@ type StatCardProps = {
 };
 function StatCard({ label, value, subtitle, trend, highlight }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <p className="text-sm text-gray-500">{label}</p>
-      {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
-      <p className={`mt-1 text-3xl font-bold ${highlight ? "text-red-500" : "text-gray-900"}`}>{value}</p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>}
+      <p className={`mt-1 text-3xl font-bold ${highlight ? "text-red-500" : "text-gray-900 dark:text-gray-100"}`}>{value}</p>
       {trend && (
-        <div className={`mt-1 flex items-center gap-1 text-xs font-medium ${trend.direction === "up" ? "text-emerald-600" : "text-red-500"}`}>
+        <div className={`mt-1 flex items-center gap-1 text-xs font-medium ${trend.direction === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
           {trend.direction === "up" ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
           {trend.text}
         </div>
@@ -33,7 +33,7 @@ function StatCard({ label, value, subtitle, trend, highlight }: StatCardProps) {
   );
 }
 
-// ─── Activity Chart: barras agrupadas por día con datos reales ───────────────
+// ─── Activity Chart ───────────────────────────────────────────────────────────
 const DAYS_LABELS = ["L", "M", "Mi", "J", "V", "S", "D"];
 
 function buildDefaultWeek(): WeeklyActivity[] {
@@ -46,10 +46,10 @@ function ActivityChart({ data }: { data: WeeklyActivity[] }) {
   const maxVal = Math.max(1, ...week.map(d => d.emails + d.calls + d.meetings));
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-900">Actividad semanal</h3>
-        <div className="flex gap-3 text-[10px] text-gray-500">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Actividad semanal</h3>
+        <div className="flex gap-3 text-[10px] text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" />Emails</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Llamadas</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />Reuniones</span>
@@ -58,9 +58,9 @@ function ActivityChart({ data }: { data: WeeklyActivity[] }) {
 
       {totalEvents === 0 ? (
         <div className="flex h-32 flex-col items-center justify-center text-center">
-          <BarChart2 size={26} className="text-gray-300 mb-2" />
-          <p className="text-xs text-gray-500 font-medium">Sin actividad esta semana</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">Las reuniones y emails aparecerán aquí</p>
+          <BarChart2 size={26} className="text-gray-300 dark:text-gray-700 mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Sin actividad esta semana</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Las reuniones y emails aparecerán aquí</p>
         </div>
       ) : (
         <div className="flex h-32 items-end gap-3">
@@ -75,7 +75,7 @@ function ActivityChart({ data }: { data: WeeklyActivity[] }) {
                   {d.calls > 0 && <div className="w-full bg-emerald-500" style={{ flex: d.calls }} />}
                   {d.emails > 0 && <div className="w-full rounded-t-md bg-indigo-500" style={{ flex: d.emails }} />}
                 </div>
-                <span className="text-[10px] text-gray-400">{DAYS_LABELS[i]}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">{DAYS_LABELS[i]}</span>
               </div>
             );
           })}
@@ -85,7 +85,7 @@ function ActivityChart({ data }: { data: WeeklyActivity[] }) {
   );
 }
 
-// ─── Upcoming Meetings con empty state ────────────────────────────────────────
+// ─── Upcoming Meetings ────────────────────────────────────────────────────────
 const DOT_COLORS = ["bg-blue-500", "bg-amber-400", "bg-gray-400"];
 
 function formatMeetingTime(startTime: string): string {
@@ -104,15 +104,14 @@ function UpcomingMeetings({ meetings }: { meetings: Meeting[] }) {
   const items = meetings.slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">Próximas reuniones</h3>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Próximas reuniones</h3>
 
-      {/* FIX: empty state grande con CTA */}
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-8 text-center dark:border-gray-700 dark:bg-gray-800/50">
           <span className="text-2xl mb-2">🎯</span>
-          <p className="text-sm font-semibold text-gray-900">No tienes reuniones pendientes</p>
-          <p className="text-xs text-gray-500 mt-1">Agenda una para empezar a cerrar negocios</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">No tienes reuniones pendientes</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Agenda una para empezar a cerrar negocios</p>
           <Link to="/meetings"
             className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all">
             <CalIcon size={13} /> ¡Agenda una!
@@ -124,11 +123,11 @@ function UpcomingMeetings({ meetings }: { meetings: Meeting[] }) {
             <div key={m.id} className="flex items-start gap-3">
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[i % DOT_COLORS.length]}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-gray-900">{m.title}</p>
-                {m.description && <p className="text-[11px] text-gray-500">{m.description}</p>}
-                {m.meetingLink && <p className="text-[11px] text-gray-400 truncate">{m.meetingLink}</p>}
+                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">{m.title}</p>
+                {m.description && <p className="text-[11px] text-gray-500 dark:text-gray-400">{m.description}</p>}
+                {m.meetingLink && <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{m.meetingLink}</p>}
               </div>
-              <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">
+              <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400 dark:text-gray-500">
                 {formatMeetingTime(m.startTime)}
               </span>
             </div>
@@ -141,13 +140,13 @@ function UpcomingMeetings({ meetings }: { meetings: Meeting[] }) {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  "Nueva":       { label: "Nueva",      cls: "bg-gray-100 text-gray-700"   },
-  "Contactada":  { label: "Contactada", cls: "bg-blue-100 text-blue-700"   },
-  "En proceso":  { label: "En proceso", cls: "bg-amber-100 text-amber-700" },
-  "Cerrada":     { label: "Cerrada",    cls: "bg-green-100 text-green-700" },
+  "Nueva":       { label: "Nueva",      cls: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"   },
+  "Contactada":  { label: "Contactada", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"   },
+  "En proceso":  { label: "En proceso", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" },
+  "Cerrada":     { label: "Cerrada",    cls: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
 };
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CFG[status] ?? { label: status, cls: "bg-gray-100 text-gray-600" };
+  const cfg = STATUS_CFG[status] ?? { label: status, cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" };
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${cfg.cls}`}>{cfg.label}</span>;
 }
 
@@ -167,26 +166,26 @@ function RecentCompaniesTable({ companies, searchQuery }: { companies: Company[]
   const rows = filtered.slice(0, 5);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-center justify-between px-5 py-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Empresas recientes</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Empresas recientes</h3>
           {searchQuery && (
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
               {filtered.length} resultado{filtered.length !== 1 ? "s" : ""} para "{searchQuery}"
             </p>
           )}
         </div>
-        <Link to="/companies" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+        <Link to="/companies" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">
           Ver todas
         </Link>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left">
-          <thead className="border-t border-gray-100">
+          <thead className="border-t border-gray-100 dark:border-gray-800">
             <tr>
               {["Empresa","Industria","Contacto","Estado","Asignada","Última interacción"].map(h => (
-                <th key={h} className="px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{h}</th>
+                <th key={h} className="px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{h}</th>
               ))}
             </tr>
           </thead>
@@ -194,21 +193,21 @@ function RecentCompaniesTable({ companies, searchQuery }: { companies: Company[]
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center">
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
                     {searchQuery ? `Sin resultados para "${searchQuery}"` : "No hay empresas registradas aún"}
                   </p>
                 </td>
               </tr>
             ) : rows.map((row) => (
-              <tr key={row.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="px-5 py-3 text-sm font-semibold text-gray-900">
-                  <Link to={`/companies/${row.id}`} className="hover:text-indigo-600">{row.name}</Link>
+              <tr key={row.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors dark:border-gray-800 dark:hover:bg-gray-800/60">
+                <td className="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <Link to={`/companies/${row.id}`} className="hover:text-indigo-600 dark:hover:text-indigo-400">{row.name}</Link>
                 </td>
-                <td className="px-5 py-3 text-sm text-gray-500">{row.industry ?? "—"}</td>
-                <td className="px-5 py-3 text-sm text-gray-500">—</td>
+                <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">{row.industry ?? "—"}</td>
+                <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">—</td>
                 <td className="px-5 py-3"><StatusBadge status={row.contactStatus} /></td>
-                <td className="px-5 py-3 text-sm text-gray-500">{row.assignedTo ?? "—"}</td>
-                <td className="px-5 py-3 text-sm text-gray-400">{new Date(row.createdAt).toLocaleDateString("es-CO")}</td>
+                <td className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">{row.assignedTo ?? "—"}</td>
+                <td className="px-5 py-3 text-sm text-gray-400 dark:text-gray-500">{new Date(row.createdAt).toLocaleDateString("es-CO")}</td>
               </tr>
             ))}
           </tbody>
@@ -239,23 +238,23 @@ export function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="border-b border-gray-200 bg-white">
+    <div className="min-h-full bg-gray-50 dark:bg-gray-950">
+      <div className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center gap-4 px-6 py-4">
-          <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-          <div className="flex max-w-sm flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-indigo-400 focus-within:bg-white transition-colors">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <div className="flex max-w-sm flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-indigo-400 focus-within:bg-white transition-colors dark:border-gray-700 dark:bg-gray-800 dark:focus-within:bg-gray-800">
             <Search size={15} className="text-gray-400" />
             <input
               type="text"
               placeholder="Buscar empresa, contacto..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none dark:text-gray-200 dark:placeholder-gray-500"
             />
             {searchInput && (
               <button
                 onClick={() => setSearchInput("")}
-                className="text-xs text-gray-400 hover:text-gray-600 px-1"
+                className="text-xs text-gray-400 hover:text-gray-600 px-1 dark:text-gray-500 dark:hover:text-gray-300"
                 aria-label="Limpiar búsqueda"
               >
                 ✕
@@ -263,7 +262,6 @@ export function DashboardPage() {
             )}
           </div>
           <div className="ml-auto">
-            {/* FIX: bg-indigo-600 con !text-white para garantizar que nunca sea gris */}
             <Link
               to="/companies"
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold !text-white shadow-sm hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 transition-all"

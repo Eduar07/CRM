@@ -8,5 +8,12 @@ public record UpdateCompanyRequest(
         String country,
         String department,
         String assignedTo,
-        String contactStatus
+        String contactStatus,
+        String nit,
+        String phones,
+        String emails,
+        String address,
+        String legalRep,
+        String companyState,
+        String description
 ) {}

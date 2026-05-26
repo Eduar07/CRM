@@ -14,6 +14,7 @@ public interface CompanyRepositoryPort {
     List<Company> findAll();
     List<Company> findByDepartment(String department);
     List<Company> findByAssignedTo(String username);
+    List<Company> findByDepartmentOrAssignedTo(String department, String assignedTo);
     boolean existsByLinkedInUrl(LinkedInUrl linkedinUrl);
     void deleteById(CompanyId id);
 }

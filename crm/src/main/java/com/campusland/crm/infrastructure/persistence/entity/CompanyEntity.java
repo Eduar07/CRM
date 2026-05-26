@@ -25,7 +25,7 @@ public class CompanyEntity {
     @Column
     private String size;
 
-    @Column(name = "linkedin_url", nullable = false, unique = true, length = 500)
+    @Column(name = "linkedin_url", nullable = true, length = 500)
     private String linkedinUrl;
 
     @Column
@@ -46,12 +46,34 @@ public class CompanyEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "nit", length = 30)
+    private String nit;
+
+    @Column(name = "phones", length = 500)
+    private String phones;
+
+    @Column(name = "emails", length = 500)
+    private String emails;
+
+    @Column(name = "address", length = 500)
+    private String address;
+
+    @Column(name = "legal_rep", length = 255)
+    private String legalRep;
+
+    @Column(name = "company_state", length = 100)
+    private String companyState;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     protected CompanyEntity() {}
 
     public CompanyEntity(UUID id, String name, String industry, String size,
                          String linkedinUrl, String website, String country,
                          String department, String assignedTo, String contactStatus,
-                         Instant createdAt) {
+                         Instant createdAt, String nit, String phones, String emails,
+                         String address, String legalRep, String companyState, String description) {
         this.id = id;
         this.name = name;
         this.industry = industry;
@@ -63,6 +85,13 @@ public class CompanyEntity {
         this.assignedTo = assignedTo;
         this.contactStatus = contactStatus != null ? contactStatus : "Nueva";
         this.createdAt = createdAt;
+        this.nit = nit;
+        this.phones = phones;
+        this.emails = emails;
+        this.address = address;
+        this.legalRep = legalRep;
+        this.companyState = companyState;
+        this.description = description;
     }
 
     public UUID getId() { return id; }
@@ -76,6 +105,13 @@ public class CompanyEntity {
     public String getAssignedTo() { return assignedTo; }
     public String getContactStatus() { return contactStatus; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getNit() { return nit; }
+    public String getPhones() { return phones; }
+    public String getEmails() { return emails; }
+    public String getAddress() { return address; }
+    public String getLegalRep() { return legalRep; }
+    public String getCompanyState() { return companyState; }
+    public String getDescription() { return description; }
 
     public void setName(String name) { this.name = name; }
     public void setIndustry(String industry) { this.industry = industry; }

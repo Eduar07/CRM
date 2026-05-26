@@ -12,4 +12,5 @@ public interface CompanyJpaRepository extends JpaRepository<CompanyEntity, UUID>
     boolean existsByLinkedinUrl(String linkedinUrl);
     List<CompanyEntity> findByDepartmentIgnoreCase(String department);
     List<CompanyEntity> findByAssignedToIgnoreCase(String assignedTo);
+    List<CompanyEntity> findByDepartmentIgnoreCaseOrAssignedToIgnoreCase(String department, String assignedTo);
 }

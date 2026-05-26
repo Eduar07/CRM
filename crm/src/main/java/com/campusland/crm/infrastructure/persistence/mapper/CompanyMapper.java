@@ -11,19 +11,25 @@ public final class CompanyMapper {
     private CompanyMapper() {}
 
     public static CompanyEntity toEntity(Company d) {
+        String linkedin = d.linkedinUrl() != null ? d.linkedinUrl().value() : null;
         return new CompanyEntity(
                 d.id().value(), d.name().value(), d.industry(), d.size(),
-                d.linkedinUrl().value(), d.website(), d.country(),
-                d.department(), d.assignedTo(), d.contactStatus(), d.createdAt()
+                linkedin, d.website(), d.country(),
+                d.department(), d.assignedTo(), d.contactStatus(), d.createdAt(),
+                d.nit(), d.phones(), d.emails(), d.address(),
+                d.legalRep(), d.companyState(), d.description()
         );
     }
 
     public static Company toDomain(CompanyEntity e) {
+        LinkedInUrl linkedin = new LinkedInUrl(e.getLinkedinUrl());
         return Company.rehydrate(
                 new CompanyId(e.getId()), new CompanyName(e.getName()),
-                new LinkedInUrl(e.getLinkedinUrl()), e.getCountry(), e.getDepartment(),
+                linkedin, e.getCountry(), e.getDepartment(),
                 e.getIndustry(), e.getSize(), e.getWebsite(),
-                e.getAssignedTo(), e.getContactStatus(), e.getCreatedAt()
+                e.getAssignedTo(), e.getContactStatus(), e.getCreatedAt(),
+                e.getNit(), e.getPhones(), e.getEmails(), e.getAddress(),
+                e.getLegalRep(), e.getCompanyState(), e.getDescription()
         );
     }
 }

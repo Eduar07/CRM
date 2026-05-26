@@ -8,13 +8,12 @@ import type { ContactStatus, Company } from "../types/company";
 const STAGES: ContactStatus[] = ["Nueva", "Contactada", "En proceso", "Cerrada"];
 
 const STAGE_CFG: Record<ContactStatus, { header: string; dot: string; ring: string }> = {
-  "Nueva":      { header: "bg-gray-100 text-gray-700",   dot: "bg-gray-400",   ring: "ring-gray-300" },
-  "Contactada": { header: "bg-blue-100 text-blue-700",   dot: "bg-blue-500",   ring: "ring-blue-400" },
-  "En proceso": { header: "bg-amber-100 text-amber-700", dot: "bg-amber-400",  ring: "ring-amber-400" },
-  "Cerrada":    { header: "bg-green-100 text-green-700", dot: "bg-green-500",  ring: "ring-green-400" },
+  "Nueva":      { header: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",   dot: "bg-gray-400",   ring: "ring-gray-300 dark:ring-gray-600" },
+  "Contactada": { header: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",   dot: "bg-blue-500",   ring: "ring-blue-400 dark:ring-blue-600" },
+  "En proceso": { header: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300", dot: "bg-amber-400",  ring: "ring-amber-400 dark:ring-amber-600" },
+  "Cerrada":    { header: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300", dot: "bg-green-500",  ring: "ring-green-400 dark:ring-green-600" },
 };
 
-// ─── BUG #5 FIX: Draggable Company Card ──────────────────────────────────────
 type CardProps = {
   company: Company;
   onDragStart: (id: string, current: ContactStatus) => void;
@@ -32,27 +31,26 @@ function CompanyCard({ company, onDragStart, onDragEnd, isDragging }: CardProps)
         onDragStart(company.id, company.contactStatus as ContactStatus);
       }}
       onDragEnd={onDragEnd}
-      className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-40 scale-95" : "hover:shadow-md hover:border-gray-300"
+      className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all cursor-grab active:cursor-grabbing dark:border-gray-700 dark:bg-gray-900 ${
+        isDragging ? "opacity-40 scale-95" : "hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600"
       }`}
     >
       <Link to={`/companies/${company.id}`} onClick={(e) => e.stopPropagation()}>
-        <p className="text-sm font-semibold text-gray-900 truncate hover:text-indigo-600">{company.name}</p>
+        <p className="text-sm font-semibold text-gray-900 truncate hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">{company.name}</p>
       </Link>
-      {company.industry && <p className="text-xs text-gray-500 mt-0.5">{company.industry}</p>}
+      {company.industry && <p className="text-xs text-gray-500 mt-0.5 dark:text-gray-400">{company.industry}</p>}
       {company.assignedTo && (
         <div className="mt-2 flex items-center gap-1.5">
-          <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">
+          <div className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
             {company.assignedTo.slice(0, 1).toUpperCase()}
           </div>
-          <span className="text-[11px] text-gray-500">{company.assignedTo}</span>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400">{company.assignedTo}</span>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Pipeline Page ────────────────────────────────────────────────────────────
 export function PipelinePage() {
   const { companies, loading, error, refresh } = useCompanies();
 
@@ -62,7 +60,6 @@ export function PipelinePage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  // Optimistic override — mientras el backend confirma, mostramos el cambio inmediato
   const [optimistic, setOptimistic] = useState<Record<string, ContactStatus>>({});
 
   const byStage = useMemo(() => {
@@ -91,7 +88,6 @@ export function PipelinePage() {
       return;
     }
 
-    // Optimistic UI: mover la tarjeta de inmediato
     setOptimistic((prev) => ({ ...prev, [draggedId]: targetStage }));
 
     const movedId = draggedId;
@@ -102,16 +98,13 @@ export function PipelinePage() {
     try {
       await updateCompany(movedId, { contactStatus: targetStage });
       setToast({ msg: `Empresa movida a "${targetStage}" ✓`, type: "success" });
-      // Refrescar para que quede consistente con el backend
       await refresh();
-      // Limpiar el optimistic para esta empresa
       setOptimistic((prev) => {
         const next = { ...prev };
         delete next[movedId];
         return next;
       });
     } catch (err) {
-      // Revertir el optimistic si falla
       setOptimistic((prev) => {
         const next = { ...prev };
         delete next[movedId];
@@ -121,9 +114,7 @@ export function PipelinePage() {
         msg: err instanceof Error ? `Error: ${err.message}` : "No se pudo actualizar el estado",
         type: "error",
       });
-      // Intentar refrescar igual para sincronizar
       void refresh();
-      // Silenciamos lint: usamos fromStage solo si necesitáramos rollback manual
       void fromStage;
     } finally {
       setSaving(false);
@@ -132,7 +123,7 @@ export function PipelinePage() {
   };
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-gray-50 dark:bg-gray-950">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
@@ -142,15 +133,15 @@ export function PipelinePage() {
         </div>
       )}
 
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
+      <div className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Pipeline</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Pipeline</h1>
+            <p className="text-sm text-gray-500 mt-0.5 dark:text-gray-400">
               {companies.length} empresas · Arrastra una tarjeta para cambiarla de estado
             </p>
           </div>
-          {saving && <span className="text-xs text-gray-400 animate-pulse">Guardando...</span>}
+          {saving && <span className="text-xs text-gray-400 animate-pulse dark:text-gray-500">Guardando...</span>}
         </div>
       </div>
 
@@ -173,14 +164,13 @@ export function PipelinePage() {
                     if (hoverStage !== stage) setHoverStage(stage);
                   }}
                   onDragLeave={(e) => {
-                    // solo limpiar si salimos de la columna completamente
                     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                       setHoverStage(null);
                     }
                   }}
                   onDrop={() => handleDrop(stage)}
                   className={`flex flex-col gap-3 rounded-xl p-2 transition-all ${
-                    isHover ? `bg-indigo-50 ring-2 ${cfg.ring}` : ""
+                    isHover ? `bg-indigo-50 ring-2 ${cfg.ring} dark:bg-indigo-950` : ""
                   }`}
                 >
                   <div className={`flex items-center justify-between rounded-xl px-3 py-2 ${cfg.header}`}>
@@ -193,7 +183,7 @@ export function PipelinePage() {
 
                   <div className="space-y-2 min-h-[80px]">
                     {items.length === 0 ? (
-                      <p className="text-center text-xs text-gray-400 py-6 italic">
+                      <p className="text-center text-xs text-gray-400 py-6 italic dark:text-gray-500">
                         {isHover ? "Soltar aquí" : "Sin empresas"}
                       </p>
                     ) : (

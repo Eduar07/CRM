@@ -60,7 +60,8 @@ public class AutomationController {
                     req.industry(),
                     req.size(),
                     req.website(),
-                    assignedTo
+                    assignedTo,
+                    null, null, null, null, null, null, null
             );
             company = companyRepository.save(company);
             isNew = true;

@@ -24,7 +24,7 @@ public class CreateCompanyService implements CreateCompanyUseCase {
     public Company create(CreateCompanyCommand command) {
         LinkedInUrl linkedinUrl = new LinkedInUrl(command.linkedinUrl());
 
-        if (companyRepositoryPort.existsByLinkedInUrl(linkedinUrl)) {
+        if (linkedinUrl.value() != null && companyRepositoryPort.existsByLinkedInUrl(linkedinUrl)) {
             throw new ApplicationException("La empresa ya existe con ese linkedinUrl");
         }
 
@@ -36,7 +36,14 @@ public class CreateCompanyService implements CreateCompanyUseCase {
                 command.industry(),
                 command.size(),
                 command.website(),
-                command.assignedTo()
+                command.assignedTo(),
+                command.nit(),
+                command.phones(),
+                command.emails(),
+                command.address(),
+                command.legalRep(),
+                command.companyState(),
+                command.description()
         );
 
         return companyRepositoryPort.save(company);

@@ -5,24 +5,38 @@ export type Company = {
   name: string;
   industry: string | null;
   size: string | null;
-  linkedinUrl: string;
+  linkedinUrl: string | null;
   website: string | null;
   country: string;
   department: string | null;
   assignedTo: string | null;
   contactStatus: ContactStatus;
   createdAt: string;
+  nit: string | null;
+  phones: string | null;
+  emails: string | null;
+  address: string | null;
+  legalRep: string | null;
+  companyState: string | null;
+  description: string | null;
 };
 
 export type CreateCompanyRequest = {
   name: string;
-  linkedinUrl: string;
+  linkedinUrl?: string;
   country: string;
   department?: string;
   industry?: string;
   size?: string;
   website?: string;
   assignedTo?: string;
+  nit?: string;
+  phones?: string;
+  emails?: string;
+  address?: string;
+  legalRep?: string;
+  companyState?: string;
+  description?: string;
 };
 
 export type UpdateCompanyRequest = {
@@ -34,4 +48,11 @@ export type UpdateCompanyRequest = {
   department?: string;
   assignedTo?: string;
   contactStatus?: ContactStatus;
+  nit?: string;
+  phones?: string;
+  emails?: string;
+  address?: string;
+  legalRep?: string;
+  companyState?: string;
+  description?: string;
 };

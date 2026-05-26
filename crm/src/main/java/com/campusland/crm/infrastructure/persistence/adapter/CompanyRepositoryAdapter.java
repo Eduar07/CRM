@@ -53,7 +53,14 @@ public class CompanyRepositoryAdapter implements CompanyRepositoryPort {
     }
 
     @Override
+    public List<Company> findByDepartmentOrAssignedTo(String department, String assignedTo) {
+        return repository.findByDepartmentIgnoreCaseOrAssignedToIgnoreCase(department, assignedTo)
+                .stream().map(CompanyMapper::toDomain).toList();
+    }
+
+    @Override
     public boolean existsByLinkedInUrl(LinkedInUrl linkedinUrl) {
+        if (linkedinUrl == null || linkedinUrl.value() == null) return false;
         return repository.existsByLinkedinUrl(linkedinUrl.value());
     }
 

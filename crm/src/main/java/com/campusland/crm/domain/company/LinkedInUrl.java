@@ -1,14 +1,15 @@
 package com.campusland.crm.domain.company;
 
-import com.campusland.crm.domain.shared.DomainException;
-
 public record LinkedInUrl(String value) {
     public LinkedInUrl {
+        // LinkedIn URL is optional for scraped companies
         if (value == null || value.isBlank()) {
-            throw new DomainException("linkedinUrl es obligatorio");
-        }
-        if (!value.startsWith("https://www.linkedin.com/")) {
-            throw new DomainException("linkedinUrl inválido");
+            value = null;
+        } else {
+            value = value.trim();
+            if (!value.startsWith("http://") && !value.startsWith("https://")) {
+                value = "https://" + value;
+            }
         }
     }
 }

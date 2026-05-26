@@ -23,11 +23,14 @@ public class CompanyAccessPolicy {
 
     public boolean canAccess(Company company) {
         UserRole role = currentUserPort.role();
+        String username = currentUserPort.username();
 
         return switch (role) {
             case SUPER_ADMIN -> true;
-            case KAROLAIN_ADMIN -> "Norte de Santander".equalsIgnoreCase(company.department());
-            case MARCELA_ADMIN -> "Santander".equalsIgnoreCase(company.department());
+            case KAROLAIN_ADMIN -> "Norte de Santander".equalsIgnoreCase(company.department())
+                    || username.equalsIgnoreCase(company.assignedTo());
+            case MARCELA_ADMIN -> "Santander".equalsIgnoreCase(company.department())
+                    || username.equalsIgnoreCase(company.assignedTo());
         };
     }
 }

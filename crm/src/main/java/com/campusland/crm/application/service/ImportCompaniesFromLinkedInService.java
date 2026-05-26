@@ -45,10 +45,9 @@ public class ImportCompaniesFromLinkedInService implements ImportCompaniesFromLi
                     linkedinUrl,
                     ext.country(),
                     ext.department(),
-                    null,   // industry — no disponible desde LinkedIn scraper
-                    null,   // size
-                    null,   // website
-                    assignedTo
+                    null, null, null,
+                    assignedTo,
+                    null, null, null, null, null, null, null
             );
 
             savedCompanies.add(companyRepositoryPort.save(company));

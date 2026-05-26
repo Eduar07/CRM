@@ -14,5 +14,12 @@ public record CompanyResponse(
         String department,
         String assignedTo,
         String contactStatus,
-        Instant createdAt
+        Instant createdAt,
+        String nit,
+        String phones,
+        String emails,
+        String address,
+        String legalRep,
+        String companyState,
+        String description
 ) {}

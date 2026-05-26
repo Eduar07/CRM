@@ -11,6 +11,7 @@ import { ContactsPage } from "./pages/ContactsPage";
 import { EmailsPage } from "./pages/EmailsPage";
 import { TasksPage } from "./pages/TasksPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { ScrapingPage } from "./pages/ScrapingPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -30,7 +31,8 @@ export const router = createBrowserRouter([
       { path: "meetings",      element: <MeetingsPage /> },
       { path: "emails",        element: <EmailsPage /> },
       { path: "tasks",         element: <TasksPage /> },
-      { path: "reports",       element: <ReportsPage /> },
+      { path: "reports",        element: <ReportsPage /> },
+      { path: "scraping",       element: <ScrapingPage /> },
     ]
   }
 ]);

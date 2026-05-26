@@ -4,11 +4,18 @@ import jakarta.validation.constraints.NotBlank;
 
 public record CreateCompanyRequest(
         @NotBlank String name,
-        @NotBlank String linkedinUrl,
+        String linkedinUrl,
         @NotBlank String country,
         String department,
         String industry,
         String size,
         String website,
-        String assignedTo
+        String assignedTo,
+        String nit,
+        String phones,
+        String emails,
+        String address,
+        String legalRep,
+        String companyState,
+        String description
 ) {}

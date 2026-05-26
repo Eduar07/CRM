@@ -46,7 +46,9 @@ public class CompanyController {
     public ResponseEntity<CompanyResponse> create(@Valid @RequestBody CreateCompanyRequest req) {
         var company = createCompanyUseCase.create(new CreateCompanyCommand(
                 req.name(), req.linkedinUrl(), req.country(), req.department(),
-                req.industry(), req.size(), req.website(), req.assignedTo()
+                req.industry(), req.size(), req.website(), req.assignedTo(),
+                req.nit(), req.phones(), req.emails(), req.address(),
+                req.legalRep(), req.companyState(), req.description()
         ));
         return ResponseEntity.status(HttpStatus.CREATED).body(CompanyApiMapper.toResponse(company));
     }
@@ -55,11 +57,12 @@ public class CompanyController {
     @GetMapping
     public ResponseEntity<List<CompanyResponse>> findAll() {
         UserRole role = currentUserPort.role();
+        String username = currentUserPort.username();
 
         List<Company> companies = switch (role) {
             case SUPER_ADMIN -> companyRepositoryPort.findAll();
-            case MARCELA_ADMIN -> companyRepositoryPort.findByDepartment("Santander");
-            case KAROLAIN_ADMIN -> companyRepositoryPort.findByDepartment("Norte de Santander");
+            case MARCELA_ADMIN -> companyRepositoryPort.findByDepartmentOrAssignedTo("Santander", username);
+            case KAROLAIN_ADMIN -> companyRepositoryPort.findByDepartmentOrAssignedTo("Norte de Santander", username);
         };
 
         return ResponseEntity.ok(companies.stream().map(CompanyApiMapper::toResponse).toList());
@@ -82,7 +85,6 @@ public class CompanyController {
                 .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada"));
         accessPolicy.assertCanAccess(entity);
 
-        // Aplicar cambios con rehydrate
         var updated = Company.rehydrate(
                 entity.id(),
                 req.name() != null ? new CompanyName(req.name()) : entity.name(),
@@ -94,17 +96,25 @@ public class CompanyController {
                 req.website() != null ? req.website() : entity.website(),
                 req.assignedTo() != null ? req.assignedTo() : entity.assignedTo(),
                 req.contactStatus() != null ? req.contactStatus() : entity.contactStatus(),
-                entity.createdAt()
+                entity.createdAt(),
+                req.nit() != null ? req.nit() : entity.nit(),
+                req.phones() != null ? req.phones() : entity.phones(),
+                req.emails() != null ? req.emails() : entity.emails(),
+                req.address() != null ? req.address() : entity.address(),
+                req.legalRep() != null ? req.legalRep() : entity.legalRep(),
+                req.companyState() != null ? req.companyState() : entity.companyState(),
+                req.description() != null ? req.description() : entity.description()
         );
 
         return ResponseEntity.ok(CompanyApiMapper.toResponse(companyRepositoryPort.save(updated)));
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','MARCELA_ADMIN','KAROLAIN_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        companyRepositoryPort.findById(new CompanyId(id))
+        var entity = companyRepositoryPort.findById(new CompanyId(id))
                 .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada"));
+        accessPolicy.assertCanAccess(entity);
         companyRepositoryPort.deleteById(new CompanyId(id));
         return ResponseEntity.noContent().build();
     }
