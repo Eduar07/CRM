@@ -1,16 +1,16 @@
 spring:
   datasource:
-    url: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: ${MYSQL_USER}
-    password: ${MYSQL_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: none
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         type:
           preferred_uuid_jdbc_type: CHAR
   flyway:
@@ -18,34 +18,35 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     repair-on-migrate: true
-    out-of-order: false
+    validate-on-migrate: false
+    out-of-order: true
 
 server:
   port: 8080
 
 security:
   jwt:
-    secret: ${JWT_SECRET}
-    issuer: campusland-crm
-    ttl-minutes: 120
+    secret: ${SECURITY_JWT_SECRET}
+    issuer: ${SECURITY_JWT_ISSUER:campusland-crm}
+    ttl-minutes: ${SECURITY_JWT_TTL_MINUTES:120}
 
 integrations:
   email:
     base-url: ${EMAIL_BASE_URL:http://localhost:8081}
-    api-key: ${EMAIL_API_KEY}
+    api-key: ${EMAIL_API_KEY:}
   hunter:
     base-url: ${HUNTER_BASE_URL:http://localhost:8082}
-    api-key: ${HUNTER_API_KEY}
+    api-key: ${HUNTER_API_KEY:}
   linkedin:
     base-url: ${LINKEDIN_BASE_URL:http://localhost:8083}
-    api-key: ${LINKEDIN_API_KEY}
+    api-key: ${LINKEDIN_API_KEY:}
   apollo:
     base-url: ${APOLLO_BASE_URL:http://localhost:8084}
-    api-key: ${APOLLO_API_KEY}
+    api-key: ${APOLLO_API_KEY:}
   microsoft:
     graph-base-url: ${MICROSOFT_GRAPH_BASE_URL:https://graph.microsoft.com}
-    access-token: ${MICROSOFT_ACCESS_TOKEN}
+    access-token: ${MICROSOFT_ACCESS_TOKEN:}
     oauth-base-url: ${MICROSOFT_OAUTH_BASE_URL:https://login.microsoftonline.com/common}
-    client-id: ${MICROSOFT_CLIENT_ID}
-    client-secret: ${MICROSOFT_CLIENT_SECRET}
-    redirect-uri: ${MICROSOFT_REDIRECT_URI}
+    client-id: ${MICROSOFT_CLIENT_ID:}
+    client-secret: ${MICROSOFT_CLIENT_SECRET:}
+    redirect-uri: ${MICROSOFT_REDIRECT_URI:http://localhost:8080/api/auth/microsoft/callback}
