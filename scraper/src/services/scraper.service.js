@@ -15,87 +15,44 @@ import {
 } from "../utils/data.extractor.js";
 import { validateURL } from "../utils/validators.js";
 
-const TIMEOUT_MS = 30_000;
-const MAX_RETRIES = 2;
+// Rotate user-agents to avoid simple bot detection
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+  "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.69 Mobile Safari/537.36",
+];
 
-// ─── Selectors that define "noise" — remove before extracting ─────────────────
+// DOM elements that add noise and data from other companies
 const NOISE_SELECTORS = [
   "nav", "header", "footer", "aside",
-  // Sections with related/other companies
   '[class*="relacionad"]', '[class*="similar"]', '[class*="otras-empresa"]',
-  '[class*="otras empresa"]', '[class*="sugerencia"]', '[class*="recomend"]',
+  '[class*="sugerencia"]', '[class*="recomend"]',
   '[id*="relacionad"]', '[id*="similar"]', '[id*="otras"]',
-  // Generic noise
   '[class*="sidebar"]', '[class*="banner"]', '[class*="publicidad"]',
   '[class*="anuncio"]', '[class*="cookie"]', '[class*="popup"]',
   '[class*="modal"]', '[class*="newsletter"]', '[class*="suscri"]',
   ".breadcrumb", '[class*="breadcrumb"]',
   '[class*="pagination"]', '[class*="paginacion"]',
-  // Scripts and media
   "script", "style", "noscript", "iframe", "img", "svg",
 ].join(", ");
 
-// ─── Browser factory ────────────────────────────────────────────────────────────
-async function launchBrowser() {
-  const isDocker = process.env.DOCKER === "true" || process.env.NODE_ENV === "production";
-
-  if (isDocker) {
-    const chromium = (await import("@sparticuz/chromium")).default;
-    const puppeteer = (await import("puppeteer-core")).default;
-    return puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas", "--no-first-run", "--no-zygote",
-        "--single-process", "--disable-gpu",
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
-    });
-  }
-
-  const puppeteer = (await import("puppeteer-core")).default;
-  const possiblePaths = [
-    process.env.CHROME_PATH,
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    "/usr/bin/google-chrome", "/usr/bin/chromium-browser", "/usr/bin/chromium",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  ].filter(Boolean);
-
-  let executablePath = null;
-  for (const p of possiblePaths) {
-    try {
-      const { existsSync } = await import("fs");
-      if (existsSync(p)) { executablePath = p; break; }
-    } catch { /* ignore */ }
-  }
-
-  if (!executablePath) {
-    throw new Error("No se encontró Chrome. Configura CHROME_PATH en .env");
-  }
-
-  return puppeteer.launch({
-    executablePath,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
-    headless: true,
-    ignoreHTTPSErrors: true,
-  });
-}
-
-// ─── Fetch HTML with timeout ────────────────────────────────────────────────────
-async function fetchHTML(url) {
+// ─── HTTP fetch with timeout and configurable user-agent ───────────────────────
+async function fetchHTML(url, uaIndex = 0) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
+  const timer = setTimeout(() => controller.abort(), 20_000);
+
   try {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-CO,es;q=0.9,en;q=0.5",
+        "User-Agent": USER_AGENTS[uaIndex % USER_AGENTS.length],
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-CO,es;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Upgrade-Insecure-Requests": "1",
       },
       redirect: "follow",
     });
@@ -106,199 +63,141 @@ async function fetchHTML(url) {
   }
 }
 
-// ─── Puppeteer fetch ────────────────────────────────────────────────────────────
-async function fetchWithPuppeteer(url) {
-  let browser = null;
-  try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-    await page.setRequestInterception(true);
-    page.on("request", (req) => {
-      if (["image", "stylesheet", "font", "media"].includes(req.resourceType())) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    );
-    await page.setExtraHTTPHeaders({ "Accept-Language": "es-CO,es;q=0.9" });
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: TIMEOUT_MS });
-    await new Promise((r) => setTimeout(r, 1500));
-    return await page.content();
-  } finally {
-    if (browser) await browser.close().catch(() => {});
-  }
-}
-
-// ─── Core DOM parser — extracts ONLY from the main company section ─────────────
+// ─── DOM parser — scoped to main company content only ─────────────────────────
 function parseCompanyFromDOM(html, baseUrl) {
   const $ = cheerio.load(html);
   const result = buildEmpty();
   result.sourceUrl = baseUrl;
 
-  // ── Step 1: JSON-LD structured data (most reliable source) ──────────────────
+  // Step 1: JSON-LD structured data (most reliable)
   $('script[type="application/ld+json"]').each((_, el) => {
     try {
       const json = JSON.parse($(el).html() || "{}");
-      const candidates = Array.isArray(json["@graph"]) ? json["@graph"] : [json];
-      const org = candidates.find(
-        (g) => g["@type"] === "Organization" || g["@type"] === "LocalBusiness" || g["@type"] === "Corporation"
+      const nodes = Array.isArray(json["@graph"]) ? json["@graph"] : [json];
+      const org = nodes.find((g) =>
+        ["Organization", "LocalBusiness", "Corporation"].includes(g["@type"])
       );
       if (!org) return;
 
-      result.razonSocial ||= org.name?.trim() ?? null;
-      result.website ||= org.url?.trim() ?? null;
-      result.descripcion ||= org.description?.trim().slice(0, 400) ?? null;
+      result.razonSocial  ||= org.name?.trim() ?? null;
+      result.website      ||= org.url?.trim() ?? null;
+      result.descripcion  ||= org.description?.trim().slice(0, 400) ?? null;
 
       if (org.address) {
-        result.direccion  ||= [org.address.streetAddress].filter(Boolean).join(", ") || null;
-        result.ciudad     ||= org.address.addressLocality?.trim() ?? null;
+        result.direccion    ||= org.address.streetAddress?.trim() ?? null;
+        result.ciudad       ||= org.address.addressLocality?.trim() ?? null;
         result.departamento ||= org.address.addressRegion?.trim() ?? null;
       }
-      if (org.telephone) {
-        const raw = Array.isArray(org.telephone) ? org.telephone : [org.telephone];
-        raw.forEach((p) => {
-          const c = cleanAndValidatePhone(String(p));
-          if (c) (isMobilePhone(c) ? result.celulares : result.telefonos).push(c);
-        });
+
+      const phones = Array.isArray(org.telephone) ? org.telephone : [org.telephone].filter(Boolean);
+      phones.forEach((p) => {
+        const c = cleanAndValidatePhone(String(p));
+        if (c) (isMobilePhone(c) ? result.celulares : result.telefonos).push(c);
+      });
+
+      const emails = Array.isArray(org.email) ? org.email : [org.email].filter(Boolean);
+      emails.filter(isValidEmail).forEach((e) => result.emails.push(e.toLowerCase()));
+
+      const links = Array.isArray(org.sameAs) ? org.sameAs : [org.sameAs].filter(Boolean);
+      for (const link of links) {
+        if (link.includes("linkedin.com/company"))  result.redesSociales.linkedin  ||= link;
+        else if (link.includes("facebook.com"))     result.redesSociales.facebook  ||= link;
+        else if (link.includes("instagram.com"))    result.redesSociales.instagram ||= link;
+        else if (link.includes("twitter.com") || link.includes("x.com"))
+                                                    result.redesSociales.twitter   ||= link;
       }
-      if (org.email) {
-        const raw = Array.isArray(org.email) ? org.email : [org.email];
-        raw.filter(isValidEmail).forEach((e) => result.emails.push(e.toLowerCase()));
-      }
-      if (org.sameAs) {
-        const links = Array.isArray(org.sameAs) ? org.sameAs : [org.sameAs];
-        for (const link of links) {
-          if (link.includes("linkedin.com/company") && !result.redesSociales.linkedin) result.redesSociales.linkedin = link;
-          else if (link.includes("facebook.com") && !result.redesSociales.facebook) result.redesSociales.facebook = link;
-          else if (link.includes("instagram.com") && !result.redesSociales.instagram) result.redesSociales.instagram = link;
-          else if ((link.includes("twitter.com") || link.includes("x.com")) && !result.redesSociales.twitter) result.redesSociales.twitter = link;
-        }
-      }
-    } catch { /* ignore malformed */ }
+    } catch { /* ignore malformed JSON-LD */ }
   });
 
-  // ── Step 2: Meta tags ───────────────────────────────────────────────────────
-  const ogTitle = $('meta[property="og:title"]').attr("content")?.trim();
-  const ogDesc  = $('meta[property="og:description"]').attr("content")?.trim();
+  // Step 2: Meta tags
+  const ogTitle  = $('meta[property="og:title"]').attr("content")?.trim();
+  const ogDesc   = $('meta[property="og:description"]').attr("content")?.trim();
   const metaDesc = $('meta[name="description"]').attr("content")?.trim();
   result.descripcion ||= ogDesc || metaDesc || null;
 
-  // ── Step 3: Remove noise from DOM before any further extraction ─────────────
-  // Mark and SAVE the position of "related companies" sections, then cut them.
-  // We detect them by their heading text.
+  // Step 3: Cut off "related companies" sections before removing noise
   $("h2, h3, h4, section, div").each((_, el) => {
     const txt = $(el).text().trim().toLowerCase();
     if (
-      txt.startsWith("empresa") && txt.includes("relacionad") ||
+      (txt.startsWith("empresa") && txt.includes("relacionad")) ||
       txt.startsWith("otras empresa") ||
-      txt.startsWith("también") ||
       txt.startsWith("más empresa") ||
       txt.startsWith("directorio") ||
-      txt.startsWith("resultados de búsqueda") ||
-      txt.startsWith("búsqueda")
+      txt.startsWith("resultados de búsqueda")
     ) {
-      // Remove this element and everything after it
       $(el).nextAll().remove();
       $(el).remove();
-      return false; // stop .each
+      return false;
     }
   });
 
-  // Remove standard noise selectors
   $(NOISE_SELECTORS).remove();
 
-  // ── Step 4: Extract phones from tel: links (highest confidence) ─────────────
+  // Step 4: tel: links — highest confidence for phones
   $('a[href^="tel:"]').each((_, el) => {
     const raw = $(el).attr("href").replace(/^tel:/i, "").trim();
     const cleaned = cleanAndValidatePhone(raw);
-    if (cleaned) {
-      const arr = isMobilePhone(cleaned) ? result.celulares : result.telefonos;
-      arr.push(cleaned);
-    }
+    if (cleaned) (isMobilePhone(cleaned) ? result.celulares : result.telefonos).push(cleaned);
   });
 
-  // ── Step 5: Extract emails from mailto: links (highest confidence) ──────────
+  // Step 5: mailto: links — highest confidence for emails
   $('a[href^="mailto:"]').each((_, el) => {
-    const raw = $(el).attr("href")
-      .replace(/^mailto:/i, "")
-      .split("?")[0]
-      .trim()
-      .toLowerCase();
+    const raw = $(el).attr("href").replace(/^mailto:/i, "").split("?")[0].trim().toLowerCase();
     if (isValidEmail(raw)) result.emails.push(raw);
   });
 
-  // ── Step 6: Extract company name from DOM ───────────────────────────────────
+  // Step 6: Company name from headings
   if (!result.razonSocial) {
-    // Try InformaColombia-style: look for the first significant heading
-    // that looks like a company name (has legal suffix or is title-cased)
-    const headings = ["h1", "h2", ".empresa-nombre", ".company-name", "[class*='empresa']", "[class*='razon-social']"];
-    for (const sel of headings) {
-      const el = $(sel).first();
-      if (!el.length) continue;
-      const txt = el.text().trim();
+    const selectors = ["h1", "h2", ".empresa-nombre", ".company-name",
+                       "[class*='empresa']", "[class*='razon-social']"];
+    for (const sel of selectors) {
+      const txt = $(sel).first().text().trim();
       if (!txt || txt.length > 120) continue;
-      // Accept if it has a company legal suffix
       if (/S\.?A\.?S|LTDA|LIMITADA|E\.?U|S\.?A\.|CÍA|CIA\.|CORP|INC|GROUP/i.test(txt)) {
-        result.razonSocial = txt;
-        break;
+        result.razonSocial = txt; break;
       }
-      // Accept if it looks like a proper name (Title Case, not a sentence)
       if (/^[A-ZÁÉÍÓÚÑ]/.test(txt) && txt.split(" ").length <= 8 && !/[?¿!¡]/.test(txt)) {
-        result.razonSocial = txt;
-        break;
+        result.razonSocial = txt; break;
       }
     }
-    // Fallback: try og:title but strip site name (everything after " | " or " - ")
+    // Fallback: og:title without site suffix
     if (!result.razonSocial && ogTitle) {
-      const cleaned = ogTitle.split(/\s*[|\-–—]\s*/)[0].trim();
-      if (cleaned.length > 2 && cleaned.length < 100) {
-        result.razonSocial = cleaned;
-      }
+      const clean = ogTitle.split(/\s*[|\-–—]\s*/)[0].trim();
+      if (clean.length > 2 && clean.length < 100) result.razonSocial = clean;
     }
   }
 
-  // ── Step 7: Extract NIT from DOM ────────────────────────────────────────────
+  // Step 7: NIT from dedicated DOM elements
   if (!result.nit) {
-    // Look for element with "nit" in class/id/label
     const nitEl = $('[class*="nit" i], [id*="nit" i], [data-label*="nit" i]').first();
     if (nitEl.length) {
-      const txt = nitEl.text().trim();
-      const m = txt.match(/\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d/);
+      const m = nitEl.text().trim().match(/\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d/);
       if (m) result.nit = normalizeNIT(m[0]);
     }
   }
 
-  // ── Step 8: Extract address from DOM ────────────────────────────────────────
+  // Step 8: Address
   if (!result.direccion) {
-    const addrEl = $('address, [class*="direcci" i], [class*="address" i], [itemprop="address"]').first();
-    if (addrEl.length) {
-      const txt = addrEl.text().replace(/\s+/g, " ").trim();
-      if (txt.length > 5 && txt.length < 300) result.direccion = txt;
-    }
+    const txt = $('address, [class*="direcci" i], [class*="address" i], [itemprop="address"]')
+      .first().text().replace(/\s+/g, " ").trim();
+    if (txt.length > 5 && txt.length < 300) result.direccion = txt;
   }
 
-  // ── Step 9: Extract representante legal ─────────────────────────────────────
+  // Step 9: Legal rep
   if (!result.representanteLegal) {
-    const repEl = $('[class*="representante" i], [class*="legal" i], [class*="gerente" i]').first();
-    if (repEl.length) {
-      const txt = repEl.text().replace(/\s+/g, " ").trim();
-      if (txt.length > 3 && txt.length < 100) result.representanteLegal = txt;
-    }
+    const txt = $('[class*="representante" i], [class*="legal" i], [class*="gerente" i]')
+      .first().text().replace(/\s+/g, " ").trim();
+    if (txt.length > 3 && txt.length < 100) result.representanteLegal = txt;
   }
 
-  // ── Step 10: Extract estado empresa ─────────────────────────────────────────
+  // Step 10: Company state
   if (!result.estadoEmpresa) {
-    const estadoEl = $('[class*="estado" i], [class*="status" i], [class*="activa" i]').first();
-    if (estadoEl.length) {
-      const txt = estadoEl.text().trim();
-      if (txt.length < 50) result.estadoEmpresa = txt;
-    }
+    const txt = $('[class*="estado" i], [class*="status" i], [class*="activa" i]')
+      .first().text().trim();
+    if (txt.length < 50) result.estadoEmpresa = txt;
   }
 
-  // ── Step 11: Social links from remaining HTML ───────────────────────────────
+  // Step 11: Social links
   const remainingHTML = $.html();
   const social = extractSocialLinks(remainingHTML);
   result.redesSociales.linkedin  ||= social.linkedin;
@@ -307,76 +206,53 @@ function parseCompanyFromDOM(html, baseUrl) {
   result.redesSociales.twitter   ||= social.twitter;
   result.redesSociales.youtube   ||= social.youtube;
 
-  // ── Step 12: Clean text from remaining main content for fallback extraction ──
+  // Step 12: Text fallbacks (only when DOM extraction found nothing)
   const mainText = $("body").text().replace(/\s+/g, " ").trim();
 
-  // Phones from text (fallback — only if not already found)
   if (result.telefonos.length === 0 && result.celulares.length === 0) {
-    const textPhones = extractPhonesFromText(mainText);
-    textPhones.forEach((p) => {
-      (isMobilePhone(p) ? result.celulares : result.telefonos).push(p);
-    });
+    extractPhonesFromText(mainText).forEach((p) =>
+      (isMobilePhone(p) ? result.celulares : result.telefonos).push(p)
+    );
   }
-
-  // Emails from text (fallback — only if not already found)
   if (result.emails.length === 0) {
-    const textEmails = extractEmailsFromText(mainText);
-    result.emails.push(...textEmails);
+    result.emails.push(...extractEmailsFromText(mainText));
   }
-
-  // NIT from text (fallback)
-  if (!result.nit) {
-    result.nit = extractNIT(mainText);
-  }
-
-  // Company name from text (last resort)
-  if (!result.razonSocial) {
-    result.razonSocial = extractCompanyNameFromText(mainText) ?? "";
-  }
-
-  // Location from text
+  result.nit          ||= extractNIT(mainText);
+  result.razonSocial  ||= extractCompanyNameFromText(mainText) ?? "";
   result.departamento ||= detectDepartamento(mainText);
   result.ciudad       ||= result.departamento;
   result.industria    ||= extractIndustria(mainText);
 
-  // ── Step 13: Website ────────────────────────────────────────────────────────
+  // Step 13: Website from links (excluding social and current domain)
   if (!result.website) {
-    // Look for explicit website links, excluding the current page's domain
     let baseHost = "";
-    try { baseHost = new URL(baseUrl).hostname; } catch { /* baseUrl may be empty */ }
+    try { baseHost = new URL(baseUrl).hostname; } catch { /* empty baseUrl */ }
+    const blocked = ["facebook", "instagram", "linkedin", "twitter", "youtube", "google", "wa.me", "whatsapp"];
     $('a[href^="http"]').each((_, el) => {
-      const href = $(el).attr("href");
-      if (!href) return;
+      if (result.website) return false;
       try {
-        const u = new URL(href);
-        const socialDomains = ["facebook", "instagram", "linkedin", "twitter", "youtube", "google", "wa.me", "whatsapp"];
-        if (
-          u.hostname !== baseHost &&
-          !socialDomains.some((s) => u.hostname.includes(s)) &&
-          !result.website
-        ) {
-          result.website = href;
+        const u = new URL($(el).attr("href"));
+        if (u.hostname !== baseHost && !blocked.some((s) => u.hostname.includes(s))) {
+          result.website = u.href;
         }
       } catch { /* ignore */ }
     });
   }
 
-  // ── Step 14: Keywords ────────────────────────────────────────────────────────
+  // Step 14: Keywords
   result.keywords = extractKeywords(mainText);
 
-  // ── Step 15: Deduplicate and clean ──────────────────────────────────────────
+  // Step 15: Deduplicate
   result.telefonos = [...new Set(result.telefonos.filter(Boolean))];
   result.celulares = [...new Set(result.celulares.filter(Boolean))];
   result.emails    = [...new Set(result.emails.filter(Boolean).map((e) => e.toLowerCase()))];
 
   result.qualityScore = calculateQualityScore(result);
-
   return result;
 }
 
 function normalizeNIT(raw) {
-  const digits = raw.replace(/[\s.]/g, "");
-  const nums = digits.replace(/[^0-9]/g, "");
+  const nums = raw.replace(/[\s.]/g, "").replace(/[^0-9]/g, "");
   if (nums.length >= 10) return `${nums.slice(0, 9)}-${nums.slice(9, 10)}`;
   if (nums.length === 9) return nums;
   return raw.trim();
@@ -385,20 +261,13 @@ function normalizeNIT(raw) {
 function extractKeywords(text) {
   const stop = new Set([
     "de","la","el","en","y","a","con","del","los","las","un","una","es","se",
-    "su","por","para","que","al","has","the","and","or","to","of","in","is",
-    "it","be","as","at","so","we","he","by","do","no","if","up","an","on",
-    "colombia","colombiana","colombiano","empresa","empresas","información",
-    "contacto","teléfono","celular","dirección","ciudad","departamento",
+    "su","por","para","que","al","colombia","colombiana","empresa","empresas",
+    "información","contacto","teléfono","dirección","ciudad","departamento",
   ]);
-
-  const words = text.toLowerCase()
-    .replace(/[^a-záéíóúñ\s]/gi, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 4 && !stop.has(w));
-
   const freq = {};
-  for (const w of words) freq[w] = (freq[w] || 0) + 1;
-
+  text.toLowerCase().replace(/[^a-záéíóúñ\s]/gi, " ").split(/\s+/)
+    .filter((w) => w.length > 4 && !stop.has(w))
+    .forEach((w) => { freq[w] = (freq[w] || 0) + 1; });
   return Object.entries(freq)
     .filter(([, c]) => c > 1)
     .sort(([, a], [, b]) => b - a)
@@ -414,38 +283,27 @@ export async function scrapeURL(rawUrl) {
   const urlStr = url.toString();
   let lastError;
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  // Try each user-agent in sequence — most sites respond to at least one
+  for (let i = 0; i < USER_AGENTS.length; i++) {
     try {
-      if (attempt === 0) {
-        try {
-          const html = await fetchHTML(urlStr);
-          const data = parseCompanyFromDOM(html, urlStr);
-          return { data, method: "fetch" };
-        } catch (fetchErr) {
-          console.log(`[scraper] fetch failed (${fetchErr.message}), trying puppeteer...`);
-        }
-      }
-      const html = await fetchWithPuppeteer(urlStr);
+      const html = await fetchHTML(urlStr, i);
       const data = parseCompanyFromDOM(html, urlStr);
-      return { data, method: "puppeteer" };
+      return { data, method: "fetch" };
     } catch (err) {
       lastError = err;
-      console.error(`[scraper] attempt ${attempt + 1} failed:`, err.message);
-      if (attempt < MAX_RETRIES) {
-        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
-      }
+      console.log(`[scraper] attempt ${i + 1}/${USER_AGENTS.length} failed: ${err.message}`);
+      if (i < USER_AGENTS.length - 1) await new Promise((r) => setTimeout(r, 600 * (i + 1)));
     }
   }
-  throw lastError ?? new Error("Scraping fallido después de varios intentos");
+
+  throw lastError ?? new Error("No se pudo obtener la página tras varios intentos");
 }
 
-export async function scrapeByNameOrNIT(input, type) {
+export async function scrapeByNameOrNIT(input) {
   const encoded = encodeURIComponent(input.trim());
-  const searchUrl = `https://www.informacolombia.com/buscar?q=${encoded}`;
-  return scrapeURL(searchUrl);
+  return scrapeURL(`https://www.informacolombia.com/buscar?q=${encoded}`);
 }
 
 export function extractFromHTML(html) {
-  const data = parseCompanyFromDOM(html, "");
-  return { data, method: "cheerio" };
+  return { data: parseCompanyFromDOM(html, ""), method: "cheerio" };
 }

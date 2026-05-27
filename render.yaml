@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: campusland-backend
+    runtime: docker
+    dockerfilePath: ./crm/Dockerfile
+    dockerContext: ./crm
+    plan: free
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: docker
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: SECURITY_JWT_SECRET
+        sync: false
+      - key: SECURITY_JWT_ISSUER
+        value: campusland-crm
+      - key: SECURITY_JWT_TTL_MINUTES
+        value: "120"
+      - key: LINKEDIN_API_KEY
+        sync: false
+      - key: APOLLO_API_KEY
+        sync: false
+      - key: HUNTER_API_KEY
+        sync: false
+      - key: EMAIL_API_KEY
+        sync: false
+
+  - type: web
+    name: campusland-scraper
+    runtime: docker
+    dockerfilePath: ./scraper/Dockerfile
+    dockerContext: ./scraper
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

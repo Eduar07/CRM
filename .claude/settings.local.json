@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-PSDrive -PSProvider FileSystem | ForEach-Object { $drive = $_.Name; Get-ChildItem \"${drive}:\\\\Program Files\\\\Docker\" -ErrorAction SilentlyContinue | Select-Object FullName })",
+      "PowerShell($env:PATH -split \";\")",
+      "PowerShell(& \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" info 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\" compose -f \"C:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\\\\docker-compose.yml\" ps 2>&1)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\\\\frontend\" -Force | Where-Object { $_.Name -match \"tailwind|config\" } | Select-Object Name)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:4000/health)",
+      "Bash(docker exec *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node --input-type=module --eval \"import * as cheerio from 'cheerio'; console.log\\('ok'\\)\")",
+      "Bash(del \"c:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\\\\frontend\\\\vercel.json\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\\\\frontend\\\\vercel.json\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\" -Recurse -File | Where-Object { $_.Extension -match '\\\\.\\(tsx?|jsx?|css|scss|json\\)$' } | Select-Object FullName | Sort-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Aorus\\\\Desktop\\\\CRM\\\\frontend\" -Recurse -File | Where-Object { $_.Extension -match '\\\\.\\(tsx?|jsx?|css|scss|json\\)$' -and $_.DirectoryName -notmatch 'node_modules|\\\\.vite|dist' } | Select-Object FullName | Sort-Object FullName)",
+      "Bash(grep -v '^$')"
+    ]
+  }
+}

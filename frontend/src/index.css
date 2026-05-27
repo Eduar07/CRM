@@ -37,3 +37,143 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%,  100% { transform: translateX(0); }
+  15%, 55%  { transform: translateX(-5px); }
+  35%, 75%  { transform: translateX(5px); }
+}
+
+@keyframes pulseRing {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@keyframes float {
+  0%,  100% { transform: translate(0, 0) scale(1); }
+  33%        { transform: translate(18px, -18px) scale(1.05); }
+  66%        { transform: translate(-12px, 10px) scale(0.95); }
+}
+
+@keyframes float2 {
+  0%,  100% { transform: translate(0, 0) scale(1); }
+  33%        { transform: translate(-18px, 16px) scale(1.07); }
+  66%        { transform: translate(12px, -8px)  scale(0.93); }
+}
+
+@keyframes progress {
+  0%   { width: 0%; }
+  20%  { width: 25%; }
+  60%  { width: 72%; }
+  100% { width: 100%; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+/* ─── Animation utility classes ──────────────────────────────────────────────── */
+
+.animate-fade-in-up  { animation: fadeInUp  0.4s ease-out both; }
+.animate-fade-in     { animation: fadeIn    0.3s ease-out both; }
+.animate-scale-in    { animation: scaleIn   0.35s ease-out both; }
+.animate-slide-left  { animation: slideInLeft 0.35s ease-out both; }
+.animate-spin-slow   { animation: spin      0.9s linear infinite; }
+.animate-shake       { animation: shake     0.42s ease-out both; }
+.animate-float       { animation: float     7s ease-in-out infinite; }
+.animate-float2      { animation: float2    9s ease-in-out infinite; }
+.animate-float3      { animation: float    11s ease-in-out infinite 1.5s; }
+.animate-pulse-ring  { animation: pulseRing 1.6s ease-out infinite; }
+
+/* ─── Stagger delays ─────────────────────────────────────────────────────────── */
+
+.delay-100 { animation-delay: 0.10s; }
+.delay-150 { animation-delay: 0.15s; }
+.delay-200 { animation-delay: 0.20s; }
+.delay-250 { animation-delay: 0.25s; }
+.delay-300 { animation-delay: 0.30s; }
+.delay-400 { animation-delay: 0.40s; }
+.delay-500 { animation-delay: 0.50s; }
+.delay-600 { animation-delay: 0.60s; }
+
+/* ─── Splash screen ───────────────────────────────────────────────────────────── */
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.splash-screen.splash-hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-progress {
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa, #6366f1);
+  background-size: 200% 100%;
+  border-radius: 9999px;
+  animation: progress 2s ease-out forwards, shimmer 1.5s linear infinite;
+}
+
+/* ─── Page transition ────────────────────────────────────────────────────────── */
+
+.page-enter {
+  animation: fadeInUp 0.32s ease-out both;
+}
+
+/* ─── Login background blobs ─────────────────────────────────────────────────── */
+
+.login-blob-1 { animation: float  7s ease-in-out infinite; }
+.login-blob-2 { animation: float2 9s ease-in-out infinite; }
+.login-blob-3 { animation: float 11s ease-in-out infinite 1.5s; }
+
+/* ─── Shimmer skeleton ───────────────────────────────────────────────────────── */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+
+html.dark .skeleton {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 400px 100%;
+}
